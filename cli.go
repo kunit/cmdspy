@@ -69,7 +69,7 @@ type Slack struct {
 
 // RunCLI runs as cli
 func RunCLI(env Env) int {
-	cli := &cli{env: env, Interval: 600}
+	cli := &cli{env: env, Interval: 1800}
 	return cli.run()
 }
 
