@@ -53,6 +53,7 @@ type Config struct {
 	Url      string
 	Channel  string
 	Emoji    string
+	Mentions []string
 	Interval int
 }
 
@@ -186,38 +187,39 @@ func (c *cli) run() int {
 		WebhookURL: config.Url,
 		Channel:    config.Channel,
 		IconEmoji:  config.Emoji,
+		Mentions:   config.Mentions,
 		Title:      args[0],
 		Message:    "Exec Command",
 		Color:      "#5CB589",
 	}
 
-	PostMessageToSlack(sl)
+	PostMessageToSlack(sl, false)
 
 	s := strings.Split(args[0], " ")
 	cmd := exec.Command(s[0], s[1:]...)
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		sl.Message = "Error"
+		sl.Message = err.Error()
 		sl.Color = "#961D13"
 		sl.Message = err.Error()
-		PostMessageToSlack(sl)
+		PostMessageToSlack(sl, true)
 		return ExitErr
 	}
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
-		sl.Message = "Error"
+		sl.Message = err.Error()
 		sl.Color = "#961D13"
 		sl.Message = err.Error()
-		PostMessageToSlack(sl)
+		PostMessageToSlack(sl, true)
 		return ExitErr
 	}
 
 	if err := cmd.Start(); err != nil {
-		sl.Message = "Error"
+		sl.Message = err.Error()
 		sl.Color = "#961D13"
 		sl.Message = err.Error()
-		PostMessageToSlack(sl)
+		PostMessageToSlack(sl, true)
 		return ExitErr
 	}
 
@@ -258,20 +260,20 @@ func (c *cli) run() int {
 			duration := now.Sub(start)
 			if int(duration.Seconds()) >= nextInterval {
 				sl.Message = fmt.Sprintf("%s から %02d:%02d:%02d 経過", start.Format("2006-01-02 15:04:05"), int(duration.Hours()), int(duration.Minutes()), int(duration.Seconds()))
-				PostMessageToSlack(sl)
+				PostMessageToSlack(sl, false)
 				nextInterval += c.Interval
 			}
 		}
 	}
 
 	if err := cmd.Wait(); err != nil {
-		sl.Message = "Error"
+		sl.Message = err.Error()
 		sl.Color = "#961D13"
-		PostMessageToSlack(sl)
+		PostMessageToSlack(sl, true)
 		return ExitErr
 	} else {
 		sl.Message = "Success"
-		PostMessageToSlack(sl)
+		PostMessageToSlack(sl, false)
 	}
 
 	return ExitOK
@@ -280,7 +282,7 @@ func (c *cli) run() int {
 var slackReplacer = strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;")
 
 // PostMessageToSlack
-func PostMessageToSlack(sl Slack) error {
+func PostMessageToSlack(sl Slack, withMention bool) error {
 	if sl.Channel != "" && !strings.HasPrefix(sl.Channel, "#") {
 		sl.Channel = "#" + sl.Channel
 	}
@@ -289,10 +291,21 @@ func PostMessageToSlack(sl Slack) error {
 
 	cli := slack_incoming_webhooks.Client{WebhookURL: sl.WebhookURL}
 
+	var text string
+	if withMention {
+		for _, mention := range sl.Mentions {
+			text = text + fmt.Sprintf("%s ", mention)
+		}
+		if len(text) > 0 {
+			text = fmt.Sprintf("%sエラーが発生しました", text)
+		}
+	}
+
 	return cli.Post(&slack_incoming_webhooks.Payload{
 		Username:  "cmdspy",
 		IconEmoji: sl.IconEmoji,
 		Channel:   sl.Channel,
+		Text:      text,
 		Attachments: []*slack_incoming_webhooks.Attachment{
 			{
 				Color: sl.Color,
