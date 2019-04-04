@@ -28,5 +28,4 @@ interval = 1800
 ```
 $ ./cmdspy -i 10 -c config.toml "sh /Users/kunit/Work/test.sh"
 ```
-
-<img width="659" alt="./cmdspy -i 10 -c config.toml "sh /Users/kunit/Work/test.sh"" src="https://user-images.githubusercontent.com/405750/55526937-faf49f80-56d1-11e9-9fac-c39a751733df.png">
+<img width="659" alt="スクリーンショット" src="https://user-images.githubusercontent.com/405750/55526937-faf49f80-56d1-11e9-9fac-c39a751733df.png">
