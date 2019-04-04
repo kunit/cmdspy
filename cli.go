@@ -1,19 +1,14 @@
 package cmdspy
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
-	"io"
-	"os/exec"
-	"reflect"
-	"strings"
-	"time"
-
 	"github.com/BurntSushi/toml"
 	"github.com/jessevdk/go-flags"
 	"github.com/mgutz/ansi"
-	"github.com/monochromegane/slack-incoming-webhooks"
+	"io"
+	"reflect"
+	"strings"
 )
 
 const (
@@ -22,12 +17,6 @@ const (
 
 	// ExitErr for exit code
 	ExitErr int = 1
-)
-
-const (
-	OutColor = "green"
-
-	ErrColor = "red"
 )
 
 // cli struct
@@ -55,17 +44,6 @@ type Config struct {
 	Emoji    string
 	Mentions []string
 	Interval int
-}
-
-// Slack struct
-type Slack struct {
-	Title      string
-	Message    string
-	Color      string
-	IconEmoji  string
-	WebhookURL string
-	Channel    string
-	Mentions   []string
 }
 
 // RunCLI runs as cli
@@ -181,137 +159,9 @@ func (c *cli) run() int {
 		return ExitErr
 	}
 
-	start := time.Now()
-
-	sl := Slack{
-		WebhookURL: config.Url,
-		Channel:    config.Channel,
-		IconEmoji:  config.Emoji,
-		Mentions:   config.Mentions,
-		Title:      args[0],
-		Message:    "Exec Command",
-		Color:      "#5CB589",
-	}
-
-	PostMessageToSlack(sl, false)
-
-	s := strings.Split(args[0], " ")
-	cmd := exec.Command(s[0], s[1:]...)
-
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		sl.Message = err.Error()
-		sl.Color = "#961D13"
-		sl.Message = err.Error()
-		PostMessageToSlack(sl, true)
+	if !Spy(args, config, c.Interval) {
 		return ExitErr
-	}
-	stderr, err := cmd.StderrPipe()
-	if err != nil {
-		sl.Message = err.Error()
-		sl.Color = "#961D13"
-		sl.Message = err.Error()
-		PostMessageToSlack(sl, true)
-		return ExitErr
-	}
-
-	if err := cmd.Start(); err != nil {
-		sl.Message = err.Error()
-		sl.Color = "#961D13"
-		sl.Message = err.Error()
-		PostMessageToSlack(sl, true)
-		return ExitErr
-	}
-
-	streamReader := func(scanner *bufio.Scanner, outputChan chan string, doneChan chan bool) {
-		defer close(outputChan)
-		defer close(doneChan)
-		for scanner.Scan() {
-			outputChan <- scanner.Text()
-		}
-		doneChan <- true
-	}
-
-	stdoutScanner := bufio.NewScanner(stdout)
-	stdoutOutputChan := make(chan string)
-	stdoutDoneChan := make(chan bool)
-	stderrScanner := bufio.NewScanner(stderr)
-	stderrOutputChan := make(chan string)
-	stderrDoneChan := make(chan bool)
-	go streamReader(stdoutScanner, stdoutOutputChan, stdoutDoneChan)
-	go streamReader(stderrScanner, stderrOutputChan, stderrDoneChan)
-
-	nextInterval := config.Interval
-	if c.Interval == 0 {
-		nextInterval = c.Interval
-	}
-
-	state := true
-	for state {
-		select {
-		case <-stdoutDoneChan:
-			state = false
-		case line := <-stdoutOutputChan:
-			fmt.Println(ansi.Color(line, OutColor))
-		case line := <-stderrOutputChan:
-			fmt.Println(ansi.Color(line, ErrColor))
-		default:
-			now := time.Now()
-			duration := now.Sub(start)
-			if int(duration.Seconds()) >= nextInterval {
-				sl.Message = fmt.Sprintf("%s から %02d:%02d:%02d 経過", start.Format("2006-01-02 15:04:05"), int(duration.Hours()), int(duration.Minutes()), int(duration.Seconds()))
-				PostMessageToSlack(sl, false)
-				nextInterval += c.Interval
-			}
-		}
-	}
-
-	if err := cmd.Wait(); err != nil {
-		sl.Message = err.Error()
-		sl.Color = "#961D13"
-		PostMessageToSlack(sl, true)
-		return ExitErr
-	} else {
-		sl.Message = "Success"
-		PostMessageToSlack(sl, false)
 	}
 
 	return ExitOK
-}
-
-var slackReplacer = strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;")
-
-// PostMessageToSlack
-func PostMessageToSlack(sl Slack, withMention bool) error {
-	if sl.Channel != "" && !strings.HasPrefix(sl.Channel, "#") {
-		sl.Channel = "#" + sl.Channel
-	}
-
-	sl.Message = slackReplacer.Replace(sl.Message)
-
-	cli := slack_incoming_webhooks.Client{WebhookURL: sl.WebhookURL}
-
-	var text string
-	if withMention {
-		for _, mention := range sl.Mentions {
-			text = text + fmt.Sprintf("%s ", mention)
-		}
-		if len(text) > 0 {
-			text = fmt.Sprintf("%sエラーが発生しました", text)
-		}
-	}
-
-	return cli.Post(&slack_incoming_webhooks.Payload{
-		Username:  "cmdspy",
-		IconEmoji: sl.IconEmoji,
-		Channel:   sl.Channel,
-		Text:      text,
-		Attachments: []*slack_incoming_webhooks.Attachment{
-			{
-				Color: sl.Color,
-				Title: sl.Title,
-				Text:  sl.Message,
-			},
-		},
-	})
 }
