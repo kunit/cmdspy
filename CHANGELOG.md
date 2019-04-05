@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.3.1](https://github.com/kunit/cmdspy/compare/v0.3.1...v0.3.1) (2019-04-05)
+
+- 経過時間の表示がおかしかったのを修正(#1)
+
 ## [v0.3.0](https://github.com/kunit/cmdspy/compare/v0.2.0...v0.3.0) (2019-04-04)
 
 - slack に送る内容にそのプロセスの ps の結果相当のものをつけるようにした
