@@ -121,7 +121,7 @@ func Spy(args []string, config Config, interval int) bool {
 			now := time.Now()
 			duration := now.Sub(start)
 			if int(duration.Seconds()) >= nextInterval {
-				sl.Message = fmt.Sprintf("%s から %02d:%02d:%02d 経過", start.Format("2006-01-02 15:04:05"), int(duration.Hours()), int(duration.Minutes()), int(duration.Seconds()))
+				sl.Message = fmt.Sprintf("%s から %02d:%02d:%02d 経過", start.Format("2006-01-02 15:04:05"), int(duration.Hours()), int(duration.Minutes())%60, int(duration.Seconds())%60)
 				line, err := getPs(cmd.Process.Pid)
 				if err != nil {
 					sl.Message = fmt.Sprintf("%s\n%s", sl.Message, err.Error())
