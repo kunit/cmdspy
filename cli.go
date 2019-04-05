@@ -19,6 +19,12 @@ const (
 	ExitErr int = 1
 )
 
+const (
+	OutColor = "green"
+
+	ErrColor = "red"
+)
+
 // cli struct
 type cli struct {
 	env      Env

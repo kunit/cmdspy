@@ -4,4 +4,4 @@ package version
 const Name string = "cmdspy"
 
 // Version for this
-const Version string = "0.3.1"
+const Version string = "0.3.2"

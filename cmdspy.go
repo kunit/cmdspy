@@ -3,19 +3,12 @@ package cmdspy
 import (
 	"bufio"
 	"fmt"
-	"github.com/mgutz/ansi"
 	"os"
 	"os/exec"
 	"strings"
 	"time"
 
 	slacli "github.com/monochromegane/slack-incoming-webhooks"
-)
-
-const (
-	OutColor = "green"
-
-	ErrColor = "red"
 )
 
 // Slack struct
@@ -104,7 +97,7 @@ func Spy(args []string, config Config, interval int) bool {
 	go streamReader(stderrScanner, stderrOutputChan, stderrDoneChan)
 
 	nextInterval := config.Interval
-	if interval == 0 {
+	if interval != 0 {
 		nextInterval = interval
 	}
 
@@ -114,9 +107,9 @@ func Spy(args []string, config Config, interval int) bool {
 		case <-stdoutDoneChan:
 			state = false
 		case line := <-stdoutOutputChan:
-			fmt.Println(ansi.Color(line, OutColor))
+			fmt.Println(line)
 		case line := <-stderrOutputChan:
-			fmt.Println(ansi.Color(line, ErrColor))
+			fmt.Println(line)
 		default:
 			now := time.Now()
 			duration := now.Sub(start)

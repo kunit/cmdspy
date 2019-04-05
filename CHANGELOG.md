@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.3.2](https://github.com/kunit/cmdspy/compare/v0.3.1...v0.3.2) (2019-04-05)
+
+- 引数の interval が正しく処理できていなかった
+
 ## [v0.3.1](https://github.com/kunit/cmdspy/compare/v0.3.1...v0.3.1) (2019-04-05)
 
 - 経過時間の表示がおかしかったのを修正(#1)
